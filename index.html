@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotus Hosting - Painel de Tempo de Jogo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 15px;
+        }
+
+        .header h1 {
+            color: #58a6ff;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            color: #8b949e;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .ranking-table th, .ranking-table td {
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        .ranking-table th {
+            background-color: #21262d;
+            color: #8b949e;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .ranking-table tr {
+            border-bottom: 1px solid #21262d;
+        }
+
+        .ranking-table tr:hover {
+            background-color: #1c2128;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .player-head {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+        }
+
+        .time-badge {
+            background-color: #238636;
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .loading, .empty {
+            text-align: center;
+            padding: 20px;
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Lotus Hosting</h1>
+            <p>Classificação de Horas Jogadas - Servidor Minecraft</p>
+        </div>
+
+        <table class="ranking-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Jogador</th>
+                    <th>Tempo de Jogo</th>
+                </tr>
+            </thead>
+            <tbody id="ranking-body">
+                <tr>
+                    <td colspan="3" class="loading">Carregando dados dos jogadores...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Função para converter segundos em Formato Horas e Minutos
+        function formatarTempo(segundosTotal) {
+            const horas = Math.floor(segundosTotal / 3600);
+            const minutos = Math.floor((segundosTotal % 3600) / 60);
+            const segs = Math.floor(segundosTotal % 60);
+
+            if (horas > 0) {
+                return `${horas}h ${minutos}m`;
+            } else if (minutos > 0) {
+                return `${minutos}m ${segs}s`;
+            } else {
+                return `${segs}s`;
+            }
+        }
+
+        // Função para buscar os dados da API
+        async function carregarRanking() {
+            try {
+                const response = await fetch('api_horas.php');
+                const result = await response.json();
+
+                const tbody = document.getElementById('ranking-body');
+                tbody.innerHTML = '';
+
+                if (result.status === 'success' && result.data.length > 0) {
+                    result.data.forEach((jogador, index) => {
+                        const tr = document.createElement('tr');
+                        
+                        // Busca a cabeça da skin do jogador pelo UUID
+                        const headUrl = `https://crafthead.net/helm/${jogador.player_uuid}/32`;
+                        const tempoFormatado = formatarTempo(jogador.tempo_segundos);
+
+                        tr.innerHTML = `
+                            <td><strong>${index + 1}º</strong></td>
+                            <td class="player-info">
+                                <img src="${headUrl}" alt="${jogador.player_name}" class="player-head" onerror="this.src='https://crafthead.net/helm/steve/32'">
+                                <span>${jogador.player_name}</span>
+                            </td>
+                            <td><span class="time-badge">${tempoFormatado}</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="3" class="empty">Nenhum registro de tempo encontrado ainda.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Erro ao buscar dados:', error);
+                document.getElementById('ranking-body').innerHTML = '<tr><td colspan="3" class="empty">Erro ao carregar o ranking de jogadores.</td></tr>';
+            }
+        }
+
+        // Executa ao carregar a página
+        carregarRanking();
+        
+        // Atualiza a cada 30 segundos automaticamente
+        setInterval(carregarRanking, 30000);
+    </script>
+</body>
+</html>
